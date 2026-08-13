@@ -1,10 +1,5 @@
-import { Application } from 'pixi.js';
+import { Game } from './game.js';
 
-const app = new Application();
+const game = new Game();
 
-await app.init({
-  resizeTo: window,
-  backgroundColor: 0x30C790,
-});
-
-document.body.appendChild(app.canvas);
+game.start();
