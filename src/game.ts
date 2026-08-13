@@ -3,6 +3,7 @@ import { Player } from "./player.js";
 import { Input } from "./input.js";
 import { Bullet } from "./bullet.js";
 import { Enemy } from "./enemy.js";
+import { EnemyEvent } from "./types/enemy.types.js";
 
 export class Game {
   private app: Application | null = null;
@@ -10,13 +11,20 @@ export class Game {
   private world: Container | null = null;
   private input: Input | null = null;
   private bullets: Bullet[] = [];
+  private bullet: Bullet | null = null;
   private enemies: Enemy[] = [];
   private bulletsContainer: Container | null = null;
   private enemiesContainer: Container | null = null;
   private bulletTexture: Texture | null = null;
   private enemyTexture: Texture | null = null;
   private enemySpawnTimer = 0;
+  private score = 0;
+  private enemy: Enemy | null = null;
   private readonly enemySpawnInterval = 1;
+
+  constructor() {
+    
+  }
 
   async start(): Promise<void> {
     this.app = new Application();
@@ -79,15 +87,19 @@ export class Game {
 
   private shoot(): void {
     if (this.player && this.bulletTexture) {
-      const bullet = new Bullet(
+       this.bullet = new Bullet(
         this.bulletTexture,
         this.player.x,
         this.player.y - 30
       );
 
-      this.bullets.push(bullet);
+      this.bullets.push(this.bullet);
 
-      this.bulletsContainer?.addChild(bullet);
+      this.bulletsContainer?.addChild(this.bullet);
+
+      this.bullet.destroyed$.subscribe((bullet: Bullet) => {
+        this.removeBullet(bullet);
+      });
     }
   }
 
@@ -95,28 +107,12 @@ export class Game {
     for (const bullet of this.bullets) {
       bullet.update(delta);
     }
-
-    this.removeInactiveBullets();
-  }
-
-  private removeInactiveBullets(): void {
-    this.bullets = this.bullets.filter((bullet: Bullet) => {
-      if (bullet.isOutOfScreen()) {
-        this.bulletsContainer?.removeChild(bullet);
-        bullet.destroy();
-        return false;
-      }
-
-      return true;
-    });
   }
 
   private updateEnemies(delta: number): void {
     for (const enemy of this.enemies) {
       enemy.update(delta);
     }
-
-    this.removeInactiveEnemies();
   }
 
   private spawnEnemies(delta: number): void {
@@ -131,32 +127,33 @@ export class Game {
 
   private createEnemy(): void {
     if (this.app && this.enemiesContainer && this.enemyTexture) {
-      const enemy = new Enemy(this.enemyTexture, Math.random() * this.app.screen.width, this.app.canvas);
+      this.enemy = new Enemy(this.enemyTexture, Math.random() * this.app.screen.width, this.app.canvas);
 
-      this.enemies.push(enemy);
+      this.enemies.push(this.enemy);
 
-      this.enemiesContainer.addChild(enemy);
+      this.enemiesContainer.addChild(this.enemy);
+
+      this.enemy.events$.subscribe((event: EnemyEvent) => {
+        switch (event.type) {
+          case 'destroyed':
+            this.removeEnemy(event.enemy);
+            break;
+
+          case 'killed':
+            this.removeEnemy(event.enemy);
+            this.score++;
+            break;
+        };
+      });
     }
-  }
-
-  private removeInactiveEnemies(): void {
-    this.enemies = this.enemies.filter((enemy: Enemy) => {
-      if (enemy.isOutOfScreen()) {
-        this.enemiesContainer?.removeChild(enemy);
-        enemy.destroy();
-        return false;
-      }
-
-      return true;
-    });
   }
 
   private checkBulletEnemyCollisions(): void {
     for (const bullet of this.bullets) {
       for (const enemy of this.enemies) {
         if (bullet.isColliding(enemy)) {
-          this.removeBullet(bullet);
-          this.removeEnemy(enemy);
+          this.enemy?.events$.next({ type: 'killed', enemy: enemy });
+          this.bullet?.destroyed$.next(bullet);
           break;
         }
       }

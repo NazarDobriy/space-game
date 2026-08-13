@@ -1,7 +1,10 @@
 import { Texture } from "pixi.js";
 import { GameObject } from "./game-object.js";
+import { Observable } from "./patterns/Observable.js";
 
 export class Bullet extends GameObject {
+  readonly destroyed$ = new Observable<Bullet>();
+
   constructor(texture: Texture, x: number, y: number) {
     super(texture);
 
@@ -11,7 +14,15 @@ export class Bullet extends GameObject {
     this.velocityY = -10;
   }
 
-  isOutOfScreen(): boolean {
+  override update(delta: number): void {
+    super.update(delta);
+
+    if (this.isOutOfScreen()) {
+      this.destroyed$.next(this);
+    }
+  }
+
+  private isOutOfScreen(): boolean {
     return this.y < -this.height;
   }
 }
