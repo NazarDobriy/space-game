@@ -10,4 +10,9 @@ export type EnemyEvent =
   | {
       type: "killed";
       enemy: Enemy;
-    };
+    }
+  | {
+      type: "playerCrushed";
+      enemy: Enemy;
+    }
+  ;

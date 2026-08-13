@@ -38,6 +38,7 @@ export class Game {
       if (hearts <= 0) {
         this.gameOver();
       }
+
       this.heartSprites.pop()?.destroy();
     });
   }
@@ -263,6 +264,8 @@ export class Game {
       this.enemiesContainer.addChild(enemy);
 
       enemy.events$.subscribe(({ type, enemy }: EnemyEvent) => {
+        const isBoss = enemy.type === 'boss';
+
         switch (type) {
           case 'destroyed':
             this.removeEnemy(enemy);
@@ -271,8 +274,6 @@ export class Game {
             break;
 
           case 'killed':
-            const isBoss = enemy.type === 'boss';
-
             if (isBoss) {
               enemy.health -= 1;
               if (enemy.health <= 0) {
@@ -285,7 +286,19 @@ export class Game {
               this.score++;
               this.score$.next(this.score);
             }
+            break;
 
+          case 'playerCrushed':
+            if (isBoss) {
+              this.score += 5;
+            } else {
+              this.score++;
+            }
+            
+            this.removeEnemy(enemy);
+            this.hearts--;
+            this.hearts$.next(this.hearts);
+            this.score$.next(this.score);
             break;
         };
       });
@@ -315,11 +328,9 @@ export class Game {
     for (const enemy of this.enemies) {
       if (this.player.isColliding(enemy)) {
         enemy.events$.next({
-          type: 'killed',
+          type: 'playerCrushed',
           enemy
         });
-        this.hearts--;
-        this.hearts$.next(this.hearts);
         break;
       }
     }
