@@ -1,4 +1,4 @@
-import { Application, Assets, Container, Texture, Ticker, Text } from "pixi.js";
+import { Application, Assets, Container, Texture, Ticker, Text, Sprite } from "pixi.js";
 import { Player } from "./player";
 import { Input } from "./input";
 import { Bullet } from "./bullet";
@@ -19,15 +19,24 @@ export class Game {
   private enemyTexture: Texture | null = null;
   private enemySpawnTimer = 0;
   private score = 0;
-  private score$ = new Observable<number>();
+  private readonly score$ = new Observable<number>();
   private scoreText: Text | null = null;
   private readonly enemySpawnInterval = 1;
+  private hearts = 3;
+  private readonly hearts$ = new Observable<number>();
+  private heartSprites: Sprite[] = [];
 
   constructor() {
     this.score$.subscribe((score: number) => {
       if (this.scoreText) {
         this.scoreText.text = `Score: ${score}`;
       }
+    });
+    this.hearts$.subscribe((hearts: number) => {
+      if (!hearts) {
+        this.app?.ticker.stop();
+      }
+      this.heartSprites.pop()?.destroy();
     });
   }
 
@@ -41,6 +50,8 @@ export class Game {
 
     document.body.appendChild(this.app.canvas);
 
+    this.reset();
+
     this.world = new Container();
 
     this.app.stage.addChild(this.world);
@@ -50,6 +61,7 @@ export class Game {
     this.enemyTexture = await Assets.load('/assets/alien.png');
     const playerTexture = await Assets.load('/assets/spaceship.png');
     this.bulletTexture = await Assets.load('/assets/bullet.png');
+    const heartTexture = await Assets.load('/assets/heart.png');
 
     this.player = new Player(playerTexture, this.input, this.app.canvas);
 
@@ -60,6 +72,7 @@ export class Game {
 
     this.world.addChild(this.bulletsContainer);
     this.world.addChild(this.enemiesContainer);
+    this.addHeartSprites(heartTexture);
 
     this.scoreText = new Text({text: `Score: ${this.score}`, style: {
       fontFamily: "Arial",
@@ -78,6 +91,29 @@ export class Game {
     });
   }
 
+  private addHeartSprites(heartTexture: Texture): void {
+    if (!this.app || !this.world) {
+      return;
+    }
+    
+    for (let i = 0; i < this.hearts; i++) {
+      const heartSprite = new Sprite(heartTexture);
+      heartSprite.x = 20 + i * (heartSprite.width + 10);
+      heartSprite.y = 70;
+      this.heartSprites.push(heartSprite);
+      this.world.addChild(heartSprite);
+    }
+  }
+
+  private reset(): void {
+    this.hearts = 3;
+    this.score = 0;
+    this.bullets = [];
+    this.enemies = [];
+    this.enemySpawnTimer = 0;
+    this.app?.stage.removeChildren();
+  }
+
   private update(delta: number): void {
     if (this.player) {
       this.player.update(delta);
@@ -92,6 +128,8 @@ export class Game {
     this.handleShooting();
 
     this.checkBulletEnemyCollisions();
+
+    this.checkPlayerEnemyCollisions();
 
     this.input?.update();
   }
@@ -177,6 +215,24 @@ export class Game {
           bullet.destroyed$.next(bullet);
           break;
         }
+      }
+    }
+  }
+
+  private checkPlayerEnemyCollisions(): void {
+    if (!this.player) {
+      return;
+    }
+
+    for (const enemy of this.enemies) {
+      if (this.player.isColliding(enemy)) {
+        enemy.events$.next({
+          type: 'killed',
+          enemy
+        });
+        this.hearts--;
+        this.hearts$.next(this.hearts);
+        break;
       }
     }
   }
