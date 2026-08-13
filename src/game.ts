@@ -5,6 +5,7 @@ import { Bullet } from "./bullet";
 import { Enemy } from "./enemy";
 import { EnemyEvent } from "./types/enemy.types";
 import { Observable } from "./patterns/Observable";
+import { textStyle } from "./text";
 
 export class Game {
   private app: Application | null = null;
@@ -34,7 +35,7 @@ export class Game {
     });
     this.hearts$.subscribe((hearts: number) => {
       if (!hearts) {
-        this.app?.ticker.stop();
+        this.gameOver();
       }
       this.heartSprites.pop()?.destroy();
     });
@@ -50,45 +51,44 @@ export class Game {
 
     document.body.appendChild(this.app.canvas);
 
-    this.reset();
-
-    this.world = new Container();
-
-    this.app.stage.addChild(this.world);
-
-    this.input = new Input();
-
-    this.enemyTexture = await Assets.load('/assets/alien.png');
-    const playerTexture = await Assets.load('/assets/spaceship.png');
-    this.bulletTexture = await Assets.load('/assets/bullet.png');
-    const heartTexture = await Assets.load('/assets/heart.png');
-
-    this.player = new Player(playerTexture, this.input, this.app.canvas);
-
-    this.world.addChild(this.player);
-
-    this.bulletsContainer = new Container();
-    this.enemiesContainer = new Container();
-
-    this.world.addChild(this.bulletsContainer);
-    this.world.addChild(this.enemiesContainer);
-    this.addHeartSprites(heartTexture);
-
-    this.scoreText = new Text({text: `Score: ${this.score}`, style: {
-      fontFamily: "Arial",
-      fill: "white",
-      fontStyle: "italic",
-      fontSize: 26,
-    }});
-
-    this.scoreText.x = 20;
-    this.scoreText.y = 30;
-
-    this.world.addChild(this.scoreText);
-
     this.app.ticker.add((ticker: Ticker) => {
       this.update(ticker.deltaTime);
     });
+
+    this.showStartScreen();
+  }
+
+  private showStartScreen(): void {
+    if (!this.app) {
+      return;
+    }
+
+    const startContainer = new Container();
+
+    startContainer.x = this.app.screen.width / 2;
+    startContainer.y = this.app.screen.height / 2;
+
+    const startText = new Text({
+      text: 'Start Game',
+      style: textStyle(60),
+    });
+
+    startText.anchor.set(0.5);
+
+    startText.eventMode = 'static';
+    startText.cursor = 'pointer';
+
+    startContainer.addChild(startText);
+
+    startText.on('click', () => {
+      startContainer.destroy({
+        children: true,
+      });
+
+      this.startGame();
+    });
+
+    this.app.stage.addChild(startContainer);
   }
 
   private addHeartSprites(heartTexture: Texture): void {
@@ -105,12 +105,78 @@ export class Game {
     }
   }
 
+  private async startGame(): Promise<void> {
+    if (!this.app) {
+      return;
+    }
+
+    this.reset();
+
+    this.world = new Container();
+    this.app.stage.addChild(this.world);
+
+    this.input = new Input();
+
+    this.enemyTexture = await Assets.load('/assets/alien.png');
+
+    const playerTexture = await Assets.load('/assets/spaceship.png');
+
+    this.bulletTexture = await Assets.load('/assets/bullet.png');
+
+    const heartTexture = await Assets.load('/assets/heart.png');
+
+    this.player = new Player(
+      playerTexture,
+      this.input,
+      this.app.canvas
+    );
+
+    this.world.addChild(this.player);
+
+    this.bulletsContainer = new Container();
+    this.enemiesContainer = new Container();
+
+    this.world.addChild(this.bulletsContainer);
+    this.world.addChild(this.enemiesContainer);
+
+    this.addHeartSprites(heartTexture);
+
+    this.scoreText = new Text({
+      text: `Score: ${this.score}`,
+      style: textStyle(26),
+    });
+
+    this.scoreText.x = 20;
+    this.scoreText.y = 30;
+
+    this.world.addChild(this.scoreText);
+
+    this.app.ticker.start();
+  }
+
+  private async restart(): Promise<void> {
+    if (!this.app) {
+      return;
+    }
+
+    await this.startGame();
+  }
+
   private reset(): void {
     this.hearts = 3;
     this.score = 0;
     this.bullets = [];
     this.enemies = [];
     this.enemySpawnTimer = 0;
+
+    this.player = null;
+    this.world = null;
+    this.bulletsContainer = null;
+    this.enemiesContainer = null;
+    this.scoreText = null;
+
+    this.heartSprites = [];
+
     this.app?.stage.removeChildren();
   }
 
@@ -192,6 +258,8 @@ export class Game {
         switch (type) {
           case 'destroyed':
             this.removeEnemy(enemy);
+            this.hearts--;
+            this.hearts$.next(this.hearts);
             break;
 
           case 'killed':
@@ -253,5 +321,50 @@ export class Game {
     this.enemies = this.enemies.filter(
       (item: Enemy) => item !== enemy
     );
+  }
+
+  private gameOver(): void {
+    const finalScore = this.score;
+    this.app?.ticker.stop();
+
+    this.reset();
+
+    if (this.app) {
+      const gameOverContainer = new Container();
+      gameOverContainer.x = this.app.canvas.width / 2;
+      gameOverContainer.y = this.app.canvas.height / 2; 
+
+      const endGameText = new Text({text: "Game is over", style: textStyle(60)});
+
+      endGameText.x = gameOverContainer.width - endGameText.width / 2;
+      endGameText.y = gameOverContainer.height - endGameText.height / 2 - 60;
+      gameOverContainer.addChild(endGameText);
+
+      const summaryText = new Text({
+        text: `Your final score is: ${finalScore}`,
+        style: textStyle(35),
+      });
+
+      summaryText.x = gameOverContainer.width - summaryText.width / 2 - 360;
+      summaryText.y = gameOverContainer.height - summaryText.height / 2 - 50;
+      gameOverContainer.addChild(summaryText);
+
+      const restartText = new Text({
+        text: "Click here to restart game",
+        style: textStyle(35, {color: 0x000000, width: 6}),
+      });
+
+      restartText.x = gameOverContainer.width - restartText.width / 2 - 350;
+      restartText.y = gameOverContainer.height - restartText.height / 2 - 50;
+
+      restartText.eventMode = "static";
+      restartText.cursor = "pointer";
+
+      gameOverContainer.addChild(restartText);
+
+      restartText.on('click', async () => this.restart());
+
+      this.app.stage.addChild(gameOverContainer);
+    }
   }
 }
