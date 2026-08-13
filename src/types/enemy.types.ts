@@ -1,5 +1,7 @@
 import { Enemy } from "../enemy";
 
+export type EnemyType = 'normal' | 'boss';
+
 export type EnemyEvent =
   | {
       type: "destroyed";

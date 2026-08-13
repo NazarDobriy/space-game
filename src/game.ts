@@ -6,6 +6,7 @@ import { Enemy } from "./enemy";
 import { EnemyEvent } from "./types/enemy.types";
 import { Observable } from "./patterns/Observable";
 import { textStyle } from "./text";
+import { enemyFactory } from "./patterns/enemy-factory";
 
 export class Game {
   private app: Application | null = null;
@@ -17,7 +18,6 @@ export class Game {
   private bulletsContainer: Container | null = null;
   private enemiesContainer: Container | null = null;
   private bulletTexture: Texture | null = null;
-  private enemyTexture: Texture | null = null;
   private enemySpawnTimer = 0;
   private score = 0;
   private readonly score$ = new Observable<number>();
@@ -26,6 +26,7 @@ export class Game {
   private hearts = 3;
   private readonly hearts$ = new Observable<number>();
   private heartSprites: Sprite[] = [];
+  private enemySpawnCount = 0;
 
   constructor() {
     this.score$.subscribe((score: number) => {
@@ -34,7 +35,7 @@ export class Game {
       }
     });
     this.hearts$.subscribe((hearts: number) => {
-      if (!hearts) {
+      if (hearts <= 0) {
         this.gameOver();
       }
       this.heartSprites.pop()?.destroy();
@@ -116,8 +117,6 @@ export class Game {
     this.app.stage.addChild(this.world);
 
     this.input = new Input();
-
-    this.enemyTexture = await Assets.load('/assets/alien.png');
 
     const playerTexture = await Assets.load('/assets/spaceship.png');
 
@@ -246,9 +245,17 @@ export class Game {
     }
   }
 
-  private createEnemy(): void {
-    if (this.app && this.enemiesContainer && this.enemyTexture) {
-      const enemy = new Enemy(this.enemyTexture, Math.random() * this.app.screen.width, this.app.canvas);
+  private async createEnemy(): Promise<void> {
+    if (this.app && this.enemiesContainer) {
+      this.enemySpawnCount++;
+
+      const type = (this.enemySpawnCount + 1) % 5 === 0 ? 'boss' : 'normal';
+
+      const enemy = await enemyFactory(
+        type,
+        Math.random() * this.app.screen.width,
+        this.app.canvas,
+      );
 
       this.enemies.push(enemy);
 
@@ -258,14 +265,26 @@ export class Game {
         switch (type) {
           case 'destroyed':
             this.removeEnemy(enemy);
-            this.hearts--;
+            enemy.type === 'normal' ? this.hearts-- : this.hearts -= 2;
             this.hearts$.next(this.hearts);
             break;
 
           case 'killed':
-            this.removeEnemy(enemy);
-            this.score++;
-            this.score$.next(this.score);
+            const isBoss = enemy.type === 'boss';
+
+            if (isBoss) {
+              enemy.health -= 1;
+              if (enemy.health <= 0) {
+                this.removeEnemy(enemy);
+                this.score += 5;
+                this.score$.next(this.score);
+              }
+            } else {
+              this.removeEnemy(enemy);
+              this.score++;
+              this.score$.next(this.score);
+            }
+
             break;
         };
       });
