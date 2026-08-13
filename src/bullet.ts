@@ -1,6 +1,6 @@
 import { Texture } from "pixi.js";
-import { GameObject } from "./game-object.js";
-import { Observable } from "./patterns/Observable.js";
+import { GameObject } from "./game-object";
+import { Observable } from "./patterns/Observable";
 
 export class Bullet extends GameObject {
   readonly destroyed$ = new Observable<Bullet>();
