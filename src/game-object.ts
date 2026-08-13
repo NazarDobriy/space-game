@@ -14,4 +14,10 @@ export abstract class GameObject extends Sprite {
     this.x += this.velocityX * delta;
     this.y += this.velocityY * delta;
   }
+
+  isColliding(other: GameObject): boolean {
+    return this.getBounds().rectangle.intersects(
+      other.getBounds().rectangle
+    );
+  }
 }

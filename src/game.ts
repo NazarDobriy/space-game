@@ -2,6 +2,7 @@ import { Application, Assets, Container, Texture, Ticker } from "pixi.js";
 import { Player } from "./player.js";
 import { Input } from "./input.js";
 import { Bullet } from "./bullet.js";
+import { Enemy } from "./enemy.js";
 
 export class Game {
   private app: Application | null = null;
@@ -9,8 +10,13 @@ export class Game {
   private world: Container | null = null;
   private input: Input | null = null;
   private bullets: Bullet[] = [];
+  private enemies: Enemy[] = [];
   private bulletsContainer: Container | null = null;
+  private enemiesContainer: Container | null = null;
   private bulletTexture: Texture | null = null;
+  private enemyTexture: Texture | null = null;
+  private enemySpawnTimer = 0;
+  private readonly enemySpawnInterval = 1;
 
   async start(): Promise<void> {
     this.app = new Application();
@@ -27,6 +33,8 @@ export class Game {
     this.app.stage.addChild(this.world);
 
     this.input = new Input();
+
+    this.enemyTexture = await Assets.load('/assets/alien.png');
     const playerTexture = await Assets.load('/assets/spaceship.png');
     this.bulletTexture = await Assets.load('/assets/bullet.png');
 
@@ -35,8 +43,10 @@ export class Game {
     this.world.addChild(this.player);
 
     this.bulletsContainer = new Container();
+    this.enemiesContainer = new Container();
 
     this.world.addChild(this.bulletsContainer);
+    this.world.addChild(this.enemiesContainer);
 
     this.app.ticker.add((ticker: Ticker) => {
       this.update(ticker.deltaTime);
@@ -50,7 +60,13 @@ export class Game {
 
     this.updateBullets(delta);
 
+    this.updateEnemies(delta);
+
+    this.spawnEnemies(delta);
+
     this.handleShooting();
+
+    this.checkBulletEnemyCollisions();
 
     this.input?.update();
   }
@@ -93,5 +109,75 @@ export class Game {
 
       return true;
     });
+  }
+
+  private updateEnemies(delta: number): void {
+    for (const enemy of this.enemies) {
+      enemy.update(delta);
+    }
+
+    this.removeInactiveEnemies();
+  }
+
+  private spawnEnemies(delta: number): void {
+    this.enemySpawnTimer += delta / 60;
+
+    if (this.enemySpawnTimer >= this.enemySpawnInterval) {
+      this.enemySpawnTimer = 0;
+
+      this.createEnemy();
+    }
+  }
+
+  private createEnemy(): void {
+    if (this.app && this.enemiesContainer && this.enemyTexture) {
+      const enemy = new Enemy(this.enemyTexture, Math.random() * this.app.screen.width, this.app.canvas);
+
+      this.enemies.push(enemy);
+
+      this.enemiesContainer.addChild(enemy);
+    }
+  }
+
+  private removeInactiveEnemies(): void {
+    this.enemies = this.enemies.filter((enemy: Enemy) => {
+      if (enemy.isOutOfScreen()) {
+        this.enemiesContainer?.removeChild(enemy);
+        enemy.destroy();
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  private checkBulletEnemyCollisions(): void {
+    for (const bullet of this.bullets) {
+      for (const enemy of this.enemies) {
+        if (bullet.isColliding(enemy)) {
+          this.removeBullet(bullet);
+          this.removeEnemy(enemy);
+          break;
+        }
+      }
+    }
+  }
+
+  private removeBullet(bullet: Bullet): void {
+    this.bulletsContainer?.removeChild(bullet);
+    bullet.destroy();
+
+    this.bullets = this.bullets.filter(
+      (item: Bullet) => item !== bullet
+    );
+  }
+
+  private removeEnemy(enemy: Enemy): void {
+    this.enemiesContainer?.removeChild(enemy);
+    enemy.destroy();
+
+    this.enemies = this.enemies.filter(
+      (item: Enemy) => item !== enemy
+    );
   }
 }
