@@ -1,5 +1,6 @@
 export class Input {
   private keys = new Set<string>();
+  private previousKeys = new Set<string>();
 
   constructor() {
     window.addEventListener('keydown', (event) => {
@@ -13,5 +14,16 @@ export class Input {
 
   isPressed(key: string): boolean {
     return this.keys.has(key);
+  }
+
+  wasPressed(key: string): boolean {
+    return (
+      this.keys.has(key) &&
+      !this.previousKeys.has(key)
+    );
+  }
+
+  update(): void {
+    this.previousKeys = new Set(this.keys);
   }
 }
