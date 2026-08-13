@@ -4,10 +4,12 @@ import { Input } from './input.js';
 
 export class Player extends GameObject {
   private readonly speed = 6;
+  private canvas: HTMLCanvasElement | null = null;
 
   constructor(texture: Texture, private readonly input: Input, canvas: HTMLCanvasElement) {
     super(texture);
 
+    this.canvas = canvas;
     this.x = canvas.width / 2;
     this.y = canvas.height / 2 + 100;
   }
@@ -33,5 +35,31 @@ export class Player extends GameObject {
     }
 
     super.update(delta);
+
+    this.checkBounds();
+  }
+
+  private checkBounds(): void {
+    if (!this.canvas) {
+      return;
+    }
+
+    const border = 34;
+
+    if (this.y < border) {
+      this.y = 34;
+    }
+
+    if (this.y > this.canvas.height - border) {
+      this.y = this.canvas.height - border;
+    }
+
+    if (this.x < 0) {
+      this.x = this.canvas.width;
+    }
+
+    if (this.x > this.canvas.width) {
+      this.x = 0;
+    }
   }
 }
