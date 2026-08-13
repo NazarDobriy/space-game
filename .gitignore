@@ -1,0 +1,24 @@
+# Project exclude paths
+/node_modules/
+/node_modules/@pixi/colord/index.js
+/node_modules/@pixi/colord/index.mjs
+/node_modules/@pixi/colord/plugins/
+/node_modules/@pixi/colord/README.md
+/node_modules/@types/earcut/LICENSE
+/node_modules/@types/earcut/README.md
+/node_modules/@webgpu/types/LICENSE
+/node_modules/@webgpu/types/README.md
+/node_modules/@xmldom/xmldom/
+/node_modules/earcut/
+/node_modules/earcut/src/earcut.js
+/node_modules/eventemitter3/
+/node_modules/gifuct-js/
+/node_modules/ismobilejs/
+/node_modules/ismobilejs/types/index.d.ts.map
+/node_modules/ismobilejs/types/isMobile.d.ts.map
+/node_modules/parse-svg-path/dist/index.cjs
+/node_modules/parse-svg-path/dist/index.mjs
+/node_modules/parse-svg-path/LICENSE
+/node_modules/parse-svg-path/README.md
+/node_modules/pixi.js/
+/node_modules/tiny-lru/
