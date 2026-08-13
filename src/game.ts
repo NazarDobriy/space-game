@@ -167,6 +167,7 @@ export class Game {
     this.bullets = [];
     this.enemies = [];
     this.enemySpawnTimer = 0;
+    this.enemySpawnCount = 0;
 
     this.player = null;
     this.world = null;
