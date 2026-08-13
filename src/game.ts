@@ -79,5 +79,19 @@ export class Game {
     for (const bullet of this.bullets) {
       bullet.update(delta);
     }
+
+    this.removeInactiveBullets();
+  }
+
+  private removeInactiveBullets(): void {
+    this.bullets = this.bullets.filter((bullet: Bullet) => {
+      if (bullet.isOutOfScreen()) {
+        this.bulletsContainer?.removeChild(bullet);
+        bullet.destroy();
+        return false;
+      }
+
+      return true;
+    });
   }
 }

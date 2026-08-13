@@ -10,4 +10,8 @@ export class Bullet extends GameObject {
 
     this.velocityY = -10;
   }
+
+  isOutOfScreen(): boolean {
+    return this.y < -this.height;
+  }
 }
