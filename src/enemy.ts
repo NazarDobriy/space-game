@@ -1,7 +1,7 @@
 import { Texture } from 'pixi.js';
-import { GameObject } from './game-object.js';
-import { Observable } from './patterns/Observable.js';
-import { EnemyEvent } from './types/enemy.types.js';
+import { GameObject } from './game-object';
+import { Observable } from './patterns/Observable';
+import { EnemyEvent } from './types/enemy.types';
 
 export class Enemy extends GameObject {
   private canvas: HTMLCanvasElement | null = null;

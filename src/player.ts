@@ -1,6 +1,6 @@
 import { Texture } from 'pixi.js';
-import { GameObject } from './game-object.js';
-import { Input } from './input.js';
+import { GameObject } from './game-object';
+import { Input } from './input';
 
 export class Player extends GameObject {
   private readonly speed = 6;

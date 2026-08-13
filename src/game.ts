@@ -1,9 +1,10 @@
-import { Application, Assets, Container, Texture, Ticker } from "pixi.js";
-import { Player } from "./player.js";
-import { Input } from "./input.js";
-import { Bullet } from "./bullet.js";
-import { Enemy } from "./enemy.js";
-import { EnemyEvent } from "./types/enemy.types.js";
+import { Application, Assets, Container, Texture, Ticker, Text } from "pixi.js";
+import { Player } from "./player";
+import { Input } from "./input";
+import { Bullet } from "./bullet";
+import { Enemy } from "./enemy";
+import { EnemyEvent } from "./types/enemy.types";
+import { Observable } from "./patterns/Observable";
 
 export class Game {
   private app: Application | null = null;
@@ -19,11 +20,17 @@ export class Game {
   private enemyTexture: Texture | null = null;
   private enemySpawnTimer = 0;
   private score = 0;
+  private score$ = new Observable<number>();
   private enemy: Enemy | null = null;
+  private scoreText: Text | null = null;
   private readonly enemySpawnInterval = 1;
 
   constructor() {
-    
+    this.score$.subscribe((score: number) => {
+      if (this.scoreText) {
+        this.scoreText.text = `Score: ${score}`;
+      }
+    });
   }
 
   async start(): Promise<void> {
@@ -55,6 +62,18 @@ export class Game {
 
     this.world.addChild(this.bulletsContainer);
     this.world.addChild(this.enemiesContainer);
+
+    this.scoreText = new Text({text: `Score: ${this.score}`, style: {
+      fontFamily: "Arial",
+      fill: "white",
+      fontStyle: "italic",
+      fontSize: 26,
+    }});
+
+    this.scoreText.x = 20;
+    this.scoreText.y = 30;
+
+    this.world.addChild(this.scoreText);
 
     this.app.ticker.add((ticker: Ticker) => {
       this.update(ticker.deltaTime);
@@ -133,15 +152,16 @@ export class Game {
 
       this.enemiesContainer.addChild(this.enemy);
 
-      this.enemy.events$.subscribe((event: EnemyEvent) => {
-        switch (event.type) {
+      this.enemy.events$.subscribe(({ type, enemy }: EnemyEvent) => {
+        switch (type) {
           case 'destroyed':
-            this.removeEnemy(event.enemy);
+            this.removeEnemy(enemy);
             break;
 
           case 'killed':
-            this.removeEnemy(event.enemy);
+            this.removeEnemy(enemy);
             this.score++;
+            this.score$.next(this.score);
             break;
         };
       });
