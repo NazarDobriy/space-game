@@ -10,6 +10,18 @@ export class Input {
     window.addEventListener('keyup', (event) => {
       this.keys.delete(event.code);
     });
+
+    window.addEventListener('mousedown', (event) => {
+      if (event.button === 0) {
+        this.keys.add('MouseLeft');
+      }
+    });
+
+    window.addEventListener('mouseup', (event) => {
+      if (event.button === 0) {
+        this.keys.delete('MouseLeft');
+      }
+    });
   }
 
   isPressed(key: string): boolean {

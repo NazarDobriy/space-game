@@ -56,7 +56,7 @@ export class Game {
   }
 
   private handleShooting(): void {
-    if (this.input?.wasPressed('Space')) {
+    if (this.input?.wasPressed('Space') || this.input?.wasPressed('MouseLeft')) {
       this.shoot();
     }
   }
