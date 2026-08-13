@@ -22,3 +22,5 @@
 /node_modules/parse-svg-path/README.md
 /node_modules/pixi.js/
 /node_modules/tiny-lru/
+
+/dist/
